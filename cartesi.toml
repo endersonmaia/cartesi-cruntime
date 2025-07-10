@@ -1,0 +1,19 @@
+[machine]
+entrypoint = "rollup-init crun run --config /run/cruntime/config/config.json --bundle /containers/ app"
+
+[drives.root]
+builder = "docker"
+dockerfile = "cruntime.Dockerfile"
+format = "sqfs"
+
+[drives.crunconfig]
+builder = "directory"
+directory = "./config" # required
+format = "sqfs"
+mount = "/container/config"
+
+[drives.crunrootfs]
+builder = "docker"
+dockerfile = "jsdapp.Dockerfile"
+format = "sqfs"
+mount = "/container/rootfs"
