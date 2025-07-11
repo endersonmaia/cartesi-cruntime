@@ -5,9 +5,10 @@
 # If any needed dependencies rely on native binaries, you must use
 # a riscv64 image such as cartesi/node:20-jammy for the build stage,
 # to ensure that the appropriate binaries will be generated.
-FROM cartesi/node:22.14.0-noble-slim AS build-stage
+FROM alpine:3.22 AS build-stage
 
 WORKDIR /opt/cartesi/dapp
+RUN apk add --no-cache nodejs npm yarn
 COPY jsdapp .
 RUN yarn install && yarn build
 
@@ -16,9 +17,10 @@ RUN yarn install && yarn build
 # Here the image's platform MUST be linux/riscv64.
 # Give preference to small base images, which lead to better start-up
 # performance when loading the Cartesi Machine.
-FROM cartesi/node:22.14.0-noble-slim
+FROM alpine:3.22
 ENV PATH="/opt/cartesi/bin:${PATH}"
 
+RUN apk add --no-cache ca-certificates nodejs
 WORKDIR /opt/cartesi/dapp
 COPY --from=build-stage /opt/cartesi/dapp/dist .
 CMD ["node", "index.js"]
