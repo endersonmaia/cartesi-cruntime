@@ -9,7 +9,6 @@ ARG UBUNTU_BASE_IMAGE=ubuntu:24.04
 #
 # This stage creates a base-image with apt repository cache and ca-certificates
 # to be used by later stages.
-FROM ${UBUNTU_BASE_IMAGE} AS base-image
 FROM --platform=linux/riscv64 ${UBUNTU_BASE_IMAGE} AS base-image
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl
