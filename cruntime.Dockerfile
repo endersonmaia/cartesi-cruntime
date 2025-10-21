@@ -93,14 +93,14 @@ EOF
 #
 FROM --platform=linux/riscv64 scratch
 ARG TARGETARCH
-ARG CRUN_VERSION=1.22
+ARG CRUN_VERSION=1.24
 
 COPY --chown=root:root --chmod=644 skel/etc/subgid /etc/subgid
 COPY --chown=root:root --chmod=644 skel/etc/subuid /etc/subuid
 COPY --chown=root:root --chmod=755 skel/etc/cartesi-init.d/cruntime-init /etc/cartesi-init.d/cruntime-init
 COPY --from=chisel /rootfs /
 COPY --from=machine-guest-tools /rootfs /
-ADD --checksum=sha256:b13640ec30fee7e333ca62f11bd435e1913dba0641d728b366818286a37da80c \
+ADD --checksum=sha256:55a67cdb1dd09f1e64d8b316d3b625098db2c948a5a046ef92ec2d139d9beb9c \
     --chmod=755 \
     https://github.com/containers/crun/releases/download/${CRUN_VERSION}/crun-${CRUN_VERSION}-linux-${TARGETARCH}-disable-systemd \
     /usr/bin/crun
