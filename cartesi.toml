@@ -1,5 +1,5 @@
 [machine]
-entrypoint = "rollup-init crun run --config /run/cruntime/config/config.json --bundle /containers/ app"
+entrypoint = "rollup-init crun run --config /container/config/config.json --bundle /container/ app"
 
 [drives.root]
 builder = "docker"
