@@ -25,16 +25,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 FROM base-image AS chisel
 ARG TARGETARCH
 
-WORKDIR /rootfs
-
 # Get chisel binary
-ARG CHISEL_VERSION=1.2.0
-ADD "https://github.com/canonical/chisel/releases/download/v${CHISEL_VERSION}/chisel_v${CHISEL_VERSION}_linux_${TARGETARCH}.tar.gz" chisel.tar.gz
-RUN tar -xvf chisel.tar.gz -C /usr/bin/
+ARG CHISEL_VERSION=1.4.0
+WORKDIR /tmp
+ADD --checksum=sha256:e2af238e29fccaddb63a57ca2a0ec87fa39c43efb878077f7bfbe2822eb1ea58 \
+    "https://github.com/canonical/chisel/releases/download/v${CHISEL_VERSION}/chisel_v${CHISEL_VERSION}_linux_${TARGETARCH}.tar.gz" \
+    /tmp/chisel.tar.gz
+RUN tar -xvf /tmp/chisel.tar.gz -C /usr/bin/ \
+    && rm -f /tmp/chisel.tar.gz
 
 # Extract crun dependencies into the chiselled filesystem
 # FIXME: remove this when busybox-static dependecies slices are upstream
 ADD https://github.com/endersonmaia/chisel-releases.git#24.04/add-busybox-static-slice /ubuntu-24.04
+WORKDIR /rootfs
 RUN chisel cut \
     --release /ubuntu-24.04 \
     --root /rootfs \
@@ -72,18 +75,13 @@ EOF
 #
 FROM base-image AS machine-guest-tools
 
-ARG MACHINE_GUEST_TOOLS_VERSION=0.17.1
+ARG MACHINE_GUEST_TOOLS_VERSION=0.17.2
 ARG DEBIAN_FRONTEND=noninteractive
-RUN <<EOF
-set -e
-
-cd /tmp
-curl -fsSL -O https://github.com/cartesi/machine-guest-tools/releases/download/v${MACHINE_GUEST_TOOLS_VERSION}/machine-guest-tools_riscv64.deb
-echo "96625d97354c1cc905a8630f3d715f64b14bc5b89f3e30913d2eb02da3a01f20a7784d32c2ed340ca401dce4d1bc0e6bebfc3fbb3808725225c5793b16fa6ef4 /tmp/machine-guest-tools_riscv64.deb" \
-  | sha512sum -c
-dpkg -x /tmp/machine-guest-tools_riscv64.deb  /rootfs
-rm /tmp/machine-guest-tools_riscv64.deb
-EOF
+WORKDIR /tmp
+ADD --checksum=sha256:c077573dbcf0cdc146adf14b480bfe454ca63aa4d3e8408c5487f550a5b77a41 \
+    https://github.com/cartesi/machine-guest-tools/releases/download/v${MACHINE_GUEST_TOOLS_VERSION}/machine-guest-tools_riscv64.deb \
+    .
+RUN dpkg -x /tmp/machine-guest-tools_riscv64.deb /rootfs
 
 ###############################################################################
 # STAGE: final image
@@ -92,16 +90,17 @@ EOF
 #
 FROM --platform=linux/riscv64 scratch
 ARG TARGETARCH
-ARG CRUN_VERSION=1.24
+ARG CRUN_VERSION=1.26
 
 COPY --chown=root:root --chmod=644 skel/etc/subgid /etc/subgid
 COPY --chown=root:root --chmod=644 skel/etc/subuid /etc/subuid
 COPY --chown=root:root --chmod=755 skel/etc/cartesi-init.d/cruntime-init /etc/cartesi-init.d/cruntime-init
 COPY --from=chisel /rootfs /
 COPY --from=machine-guest-tools /rootfs /
-ADD --checksum=sha256:55a67cdb1dd09f1e64d8b316d3b625098db2c948a5a046ef92ec2d139d9beb9c \
+ADD --checksum=sha256:24530549d2c0b66450698b70168163cb9d188cd1838408bb41b21c8875cbceaf \
     --chmod=755 \
     https://github.com/containers/crun/releases/download/${CRUN_VERSION}/crun-${CRUN_VERSION}-linux-${TARGETARCH}-disable-systemd \
     /usr/bin/crun
-
-ENTRYPOINT ["rollup-init", "crun", "run", "--config", "/container/config/config.json", "--bundle", "/container", "app"]
+USER dapp
+ENTRYPOINT ["rollup-init"]
+CMD ["crun", "run", "--config", "/container/config/config.json", "--bundle", "/container", "app"]
